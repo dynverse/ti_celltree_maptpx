@@ -4,7 +4,7 @@ RUN apt-get install -y libgsl-dev
 
 RUN R -e 'devtools::install_cran("cellTree")'
 
-LABEL version 0.1.2
+LABEL version 0.1.3
 
 ADD . /code
 
