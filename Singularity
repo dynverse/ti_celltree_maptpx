@@ -8,14 +8,14 @@ Bootstrap: shub
 From: dynverse/dynwrap:bioc
 
 %labels
-    version 0.1.5
+    version 0.1.5.1
 
 %files
     . /code
 
 %post
     chmod -R 755 '/code'
-    apt-get install -y libgsl-dev
+    apt-get update && apt-get install -y libgsl-dev
     R -e 'devtools::install_cran("cellTree")'
 
 %runscript
