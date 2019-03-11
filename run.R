@@ -1,25 +1,31 @@
-#!/usr/local/bin/Rscript
+library(jsonlite)
+library(readr)
+library(dplyr)
+library(purrr)
 
-task <- dyncli::main()
+requireNamespace("cellTree")
 
-# load libraries
-library(dyncli, warn.conflicts = FALSE)
-library(dynwrap, warn.conflicts = FALSE)
-library(dplyr, warn.conflicts = FALSE)
-library(purrr, warn.conflicts = FALSE)
+#   ____________________________________________________________________________
+#   Load data                                                               ####
 
-library(cellTree, warn.conflicts = FALSE)
+data <- read_rds("/ti/input/data.rds")
+params <- jsonlite::read_json("/ti/input/params.json")
 
-#####################################
-###           LOAD DATA           ###
-#####################################
-expression <- task$expression
-params <- task$params
-priors <- task$priors
+#' @examples
+#' data <- dyntoy::generate_dataset(id = "test", num_cells = 300, num_features = 300, model = "binary_tree") %>% c(., .$prior_information)
+#' params <- yaml::read_yaml("containers/celltree_gibbs/definition.yml")$parameters %>%
+#'   {.[names(.) != "forbidden"]} %>%
+#'   map(~ .$default)
+#' params$tot_iter <- 30 # override for testing
+
+#   ____________________________________________________________________________
+#   Infer trajectory                                                        ####
+
+expression <- data$expression
 
 start_cell <-
-  if (!is.null(priors$start_id)) {
-    sample(priors$start_id, 1)
+  if (!is.null(data$start_id)) {
+    sample(data$start_id, 1)
   } else {
     NULL
   }
@@ -28,17 +34,19 @@ if (params$rooting_method == "null") {
   params$rooting_method <- NULL
 }
 
-# TIMING: done with preproc
-timings <- list(method_afterpreproc = Sys.time())
+if (is.null(params$num_topics)) {
+  num_topics <- seq(params$num_topics_lower, params$num_topics_upper)
+} else {
+  num_topics <- params$num_topics
+}
 
-#####################################
-###        INFER TRAJECTORY       ###
-#####################################
+# TIMING: done with preproc
+checkpoints <- list(method_afterpreproc = as.numeric(Sys.time()))
 
 # infer the LDA model
 lda_out <- cellTree::compute.lda(
   t(expression) + min(expression) + 1,
-  k.topics = params$num_topics,
+  k.topics = num_topics,
   method = params$method,
   log.scale = FALSE,
   sd.filter = params$sd_filter,
@@ -50,15 +58,14 @@ lda_out <- cellTree::compute.lda(
 start.group.label <- NULL
 grouping <- NULL
 
-if (!is.null(priors$groups_id)) {
+if(!is.null(data$groups_id)) {
   grouping <-
-    priors$groups_id %>%
+    data$groups_id %>%
     dplyr::slice(match(cell_id, rownames(expression))) %>%
     pull(group_id)
-  if (!is.null(priors$start_id)) {
+  if(!is.null(data$start_cell)) {
     start.group.label <-
-      priors$groups_id %>% 
-      filter(cell_id == priors$start_id) %>%
+      data$groups_id %>% filter(cell_id == data$start_cell) %>%
       pull(group_id)
   }
 }
@@ -76,35 +83,30 @@ mst_tree <- cellTree::compute.backbone.tree(
   merge.sequential.backbone = FALSE
 )
 
-# TIMING: done with trajectory inference
-timings$method_aftermethod <- Sys.time()
+# TIMING: done with method
+checkpoints$method_aftermethod <- as.numeric(Sys.time())
 
 # simplify sample graph to just its backbone
-cell_graph <-
-  igraph::as_data_frame(mst_tree, "edges") %>%
+cell_graph <- igraph::as_data_frame(mst_tree, "edges") %>%
   dplyr::select(from, to, length = weight) %>%
   mutate(
     from = rownames(expression)[from],
     to = rownames(expression)[to],
     directed = FALSE
   )
-to_keep <-
- igraph::V(mst_tree)$is.backbone %>%
+to_keep <- igraph::V(mst_tree)$is.backbone %>%
   setNames(rownames(expression))
 
-#####################################
-###     SAVE OUTPUT TRAJECTORY    ###
-#####################################
-output <-
-  wrap_data(
-    cell_ids = rownames(expression)
-  ) %>%
-  add_cell_graph(
-    cell_graph = cell_graph,
-    to_keep = to_keep
-  )  %>%
-  add_timings(
-    timings = timings
-  )
+# wrap output
+output <- lst(
+  cell_ids = rownames(expression),
+  cell_graph,
+  to_keep,
+  is_directed = FALSE,
+  timings = checkpoints
+)
 
-dyncli::write_output(output, task$output)
+#   ____________________________________________________________________________
+#   Save output                                                             ####
+
+write_rds(output, "/ti/output/output.rds")
