@@ -91,7 +91,7 @@ parameters:
     default: 'null'
   - id: num_topics
     description: 'Number of topics to fit in the model.'
-    type: range
+    type: integer_range
     default: 
     - 2
     - 15
