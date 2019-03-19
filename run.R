@@ -14,7 +14,7 @@ library(cellTree, warn.conflicts = FALSE)
 ###           LOAD DATA           ###
 #####################################
 expression <- task$expression
-params <- task$params
+parameters <- task$parameters
 priors <- task$priors
 
 start_cell <-
@@ -24,8 +24,8 @@ start_cell <-
     NULL
   }
 
-if (params$rooting_method == "null") {
-  params$rooting_method <- NULL
+if (parameters$rooting_method == "null") {
+  parameters$rooting_method <- NULL
 }
 
 # TIMING: done with preproc
@@ -38,12 +38,12 @@ timings <- list(method_afterpreproc = Sys.time())
 # infer the LDA model
 lda_out <- cellTree::compute.lda(
   t(expression) + min(expression) + 1,
-  k.topics = params$num_topics,
-  method = params$method,
+  k.topics = parameters$num_topics,
+  method = parameters$method,
   log.scale = FALSE,
-  sd.filter = params$sd_filter,
-  tot.iter = params$tot_iter,
-  tol = params$tolerance
+  sd.filter = parameters$sd_filter,
+  tot.iter = parameters$tot_iter,
+  tol = parameters$tolerance
 )
 
 # check whether there is prior information available
@@ -68,10 +68,10 @@ mst_tree <- cellTree::compute.backbone.tree(
   lda.results = lda_out,
   grouping = grouping,
   start.group.label = start.group.label,
-  absolute.width = params$absolute_width,
-  width.scale.factor = params$width_scale_factor,
-  outlier.tolerance.factor = params$outlier_tolerance_factor,
-  rooting.method = params$rooting_method,
+  absolute.width = parameters$absolute_width,
+  width.scale.factor = parameters$width_scale_factor,
+  outlier.tolerance.factor = parameters$outlier_tolerance_factor,
+  rooting.method = parameters$rooting_method,
   only.mst = FALSE,
   merge.sequential.backbone = FALSE
 )
