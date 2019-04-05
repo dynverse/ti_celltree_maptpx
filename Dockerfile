@@ -1,11 +1,11 @@
-FROM dynverse/dynwrap:bioc
+FROM dynverse/dynwrapr:v0.1.0
+
+ARG GITHUB_PAT
 
 RUN apt-get update && apt-get install -y libgsl-dev
 
 RUN R -e 'devtools::install_cran("cellTree")'
 
-LABEL version 0.1.5.1
+COPY definition.yml run.R example.sh /code/
 
-ADD . /code
-
-ENTRYPOINT Rscript /code/run.R
+ENTRYPOINT ["/code/run.R"]

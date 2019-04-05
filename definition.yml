@@ -1,100 +1,121 @@
-id: celltree_maptpx
-docker_repository: dynverse/ti_celltree_maptpx
-singularity_collection: 1538
-container_url: https://github.com/dynverse/ti_celltree_maptpx
-name: cellTree maptpx
-source: tool
-platform: R
-implementation_id: celltree
-apt_dependencies: libgsl-dev
-doi: 10.1186/s12859-016-1175-6
-google_scholar_cluster_id: '6029217784505101308'
-trajectory_types:
-- linear
-- bifurcation
-- convergence
-- multifurcation
-- binary_tree
-- tree
-topology_inference: free
-license: Artistic-2.0
-publication_date: '2016-08-13'
-code_url: https://bioconductor.org/packages/release/bioc/html/cellTree.html
+method:
+  id: celltree_maptpx
+  name: cellTree maptpx
+  tool_id: celltree
+  source: tool
+  platform: R
+  url: https://bioconductor.org/packages/release/bioc/html/cellTree.html
+  license: Artistic-2.0
+  authors:
+  - given: David
+    family: duVerle
+    email: dave@cb.k.u-tokyo.ac.jp
+    ORCID: 0000-0003-2836-0502
+    github: david-duverle
+  - given: Koji
+    family: Tsuda
+    email: tsuda@k.u-tokyo.ac.jp
+    ORCID: 0000-0002-4288-1606
+    github: tsudalab
+
+manuscript:
+  doi: 10.1186/s12859-016-1175-6
+  google_scholar_cluster_id: '6029217784505101308'
+  publication_date: '2016-08-13'
+
+container:
+  url: https://github.com/dynverse/ti_celltree_maptpx
+  docker: dynverse/ti_celltree_maptpx
+
+wrapper:
+  type: cell_graph
+  topology_inference: free
+  trajectory_types:
+  - linear
+  - bifurcation
+  - convergence
+  - multifurcation
+  - binary_tree
+  - tree
+  input_required: expression
+  input_optional:
+  - start_id
+  - groups_id
+
 parameters:
-  method:
-    type: discrete
+  - id: method
+    description: 'LDA inference method to use.'
+    type: character
     default: maptpx
     values: maptpx
-  sd_filter:
+  - id: sd_filter
+    description: 'Standard-deviation threshold below which genes should be removed from the data.'
     type: numeric
-    lower: 0.01
-    upper: 5.0
     default: 0.5
-  absolute_width:
+    distribution:
+      type: expuniform
+      lower: 0.01
+      upper: 5.0
+  - id: absolute_width
+    description: 'Distance threshold below which a cell vertex is considered to be attached to a backbone vertex (see paper for more details). By default, this threshold is computed dynamically, based on the distance distribution for each branch.'
     type: numeric
-    values: 0.0e+00
-    default: 0.0e+00
-    tunable: no
-  width_scale_factor:
+    default: 0
+    distribution:
+      type: uniform
+      lower: 0
+      upper: 1
+  - id: width_scale_factor
+    description: 'A scaling factor for the dynamically-computed distance threshold (ignored if absolute_width is provided). Higher values will result in less branches in the backbone tree, while lower values might lead to a large number of backbone branches.'
     type: numeric
-    lower: 0.1
     default: 1.5
-    upper: 100.0
-  outlier_tolerance_factor:
+    distribution:
+      type: expuniform
+      lower: 0.1
+      upper: 100
+  - id: outlier_tolerance_factor
+    description: 'Proportion of vertices, out of the total number of vertices divided by the total number of branches, that can be left at the end of the backbone tree-building algorithm.'
     type: numeric
-    lower: 0.0001
     default: 0.1
-    upper: 1000.0
-    distribution: expuniform
-  rooting_method:
-    type: discrete
+    distribution:
+      type: expuniform
+      lower: 0.0001
+      upper: 1000
+  - id: rooting_method
+    description: 'Method used to root the backbone tree. Must be either NULL or one of ‘longest.path’, ‘center.start.group’ or ‘average.start.group’. ‘longest.path’ picks one end of the longest shortest-path between two vertices. ’center.start.group’ picks the vertex in the starting group with lowest mean-square-distance to the others. ‘average.start.group’ creates a new artificial vertex, as the average of all cells in the starting group. If no value is provided, the best method is picked based on the type of grouping and start group information available.'
+    type: character
     values:
     - longest.path
     - center.start.group
     - average.start.group
     - 'null'
     default: 'null'
-  num_topics_lower:
-    type: integer
-    lower: 2.0
-    upper: 15.0
-    default: 2.0
-  num_topics_upper:
-    type: integer
-    lower: 2.0
-    upper: 15.0
-    default: 15.0
-  tot_iter:
+  - id: num_topics
+    description: 'Number of topics to fit in the model.'
+    type: integer_range
+    default: 
+    - 2
+    - 15
+    lower_distribution:
+      type: uniform
+      lower: 2
+      upper: 10
+    upper_distribution:
+      type: uniform
+      lower: 10
+      upper: 30
+  - id: tot_iter
+    description: "Numeric parameters (optional) forwarded to the chosen LDA inference method's contol class."
     type: numeric
-    lower: 10000.0
-    upper: 1.0e+07
-    default: 1000000.0
-  tolerance:
+    default: 200
+    distribution:
+      type: expuniform
+      lower: 10000
+      upper: 1000000
+  - id: tolerance
+    description: "Numeric parameters (optional) forwarded to the chosen LDA inference method's contol class."
     type: numeric
-    lower: 0.001
-    upper: 0.5
     default: 0.05
-  forbidden: num_topics_lower > num_topics_upper
-input:
-  format: rds
-  optional:
-  - start_id
-  - groups_id
-  required: expression
-output:
-  format: rds
-  outputs:
-  - cell_graph
-  - timings
-wrapper_type: cell_graph
-authors:
-- given: David
-  family: duVerle
-  email: dave@cb.k.u-tokyo.ac.jp
-  ORCID: 0000-0003-2836-0502
-  github: david-duverle
-- given: Koji
-  family: Tsuda
-  email: tsuda@k.u-tokyo.ac.jp
-  ORCID: 0000-0002-4288-1606
-  github: tsudalab
+    distribution:
+      type: expuniform
+      lower: 0.001
+      upper: 0.5
