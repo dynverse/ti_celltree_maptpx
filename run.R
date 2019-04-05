@@ -37,7 +37,7 @@ timings <- list(method_afterpreproc = Sys.time())
 
 # infer the LDA model
 lda_out <- cellTree::compute.lda(
-  t(expression) + min(expression) + 1,
+  Matrix::t(expression) + min(expression) + 1,
   k.topics = parameters$num_topics,
   method = parameters$method,
   log.scale = FALSE,
